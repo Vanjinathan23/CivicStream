@@ -12,12 +12,13 @@ import './IssueDetailScreen.css';
  * 3. Search functionality (simulated)
  * 4. Responsive Dual-View sync
  */
-const IssueDetailScreen = ({ variant = 'mobile' }) => {
+const IssueDetailScreen = ({ variant = 'mobile', isTabPage = false }) => {
     const isMobile = variant === 'mobile';
 
     // Global State
     const issues = useAppStore(state => state.issues);
     const selectedIssueId = useAppStore(state => state.selectedIssueId);
+    const currentUser = useAppStore(state => state.currentUser);
     const setSelectedIssueId = useAppStore(state => state.setSelectedIssueId);
     const navigate = useAppStore(state => state.navigate);
 
@@ -79,7 +80,15 @@ const IssueDetailScreen = ({ variant = 'mobile' }) => {
         }
     };
 
-    const handleBack = () => navigate('home');
+    const handleBack = () => {
+        if (currentUser?.role === 'official') {
+            navigate('official-dashboard');
+        } else if (currentUser?.role === 'worker') {
+            navigate('worker-dashboard');
+        } else {
+            navigate('home');
+        }
+    };
 
     const getStatusInfo = (status) => {
         const s = (status || '').toLowerCase();
@@ -137,9 +146,11 @@ const IssueDetailScreen = ({ variant = 'mobile' }) => {
                     ><div className="chip-dot" /> Resolved</div>
                 </div>
 
-                <div className="map-back-btn" onClick={handleBack}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 24 }}>arrow_back</span>
-                </div>
+                {!isTabPage && (
+                    <div className="map-back-btn" onClick={handleBack}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 24 }}>arrow_back</span>
+                    </div>
+                )}
             </div>
 
             <div className="map-container">
