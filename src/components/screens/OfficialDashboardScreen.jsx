@@ -3,6 +3,7 @@ import useAppStore from '../../store/useAppStore';
 import useNotificationStore from '../../store/useNotificationStore';
 import './OfficialDashboardScreen.css';
 import { TaskListView, UnifiedIssueDetailsModal } from './OfficialViews';
+import IssueDetailScreen from './IssueDetailScreen';
 
 const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
     const isMobile = variant === 'mobile';
@@ -11,6 +12,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
     const user = useAppStore(state => state.currentUser);
     const issues = useAppStore(state => state.issues);            // ← shared complaints from DB
     const fetchAppData = useAppStore(state => state.fetchAppData);
+    const setSelectedIssueId = useAppStore(state => state.setSelectedIssueId);
 
     // Core Navigation State
     const [activeTab, setActiveTab] = useState('Control');
@@ -19,6 +21,11 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
     const [selectedWorkerProfile, setSelectedWorkerProfile] = useState(null);
     const unreadCount = useNotificationStore(state => state.unreadCount);
     const navigate = useAppStore(state => state.navigate);
+
+    const handleOpenIssue = (id) => {
+        setSelectedIssueId(id);
+        navigate('issue-detail');
+    };
 
     // Load complaints from DB on mount
     useEffect(() => {
@@ -66,6 +73,23 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <span className="od-nav-label">Config</span>
             </button>
         </>
+    );
+
+    const renderUnderDevelopment = (tab) => (
+        <div className="od-content-wrapper animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ width: '120px', height: '120px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#94a3b8' }}>
+                    {tab === 'Metrics' ? 'analytics' : tab === 'Workers' ? 'engineering' : tab === 'Live Map' ? 'map' : 'settings'}
+                </span>
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b', margin: '0 0 12px 0' }}>{tab} Under Development</h2>
+            <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '400px', lineHeight: '1.6', margin: 0 }}>
+                We're building something great for the CivicStream management suite. This feature will be available in the next release.
+            </p>
+            <button className="od-btn primary" style={{ marginTop: '32px', width: 'auto', padding: '12px 24px' }} onClick={() => setActiveTab('Control')}>
+                Back to Control
+            </button>
+        </div>
     );
 
     const renderDashboard = () => (
@@ -193,7 +217,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                                     <span>{esc.location}</span>
                                 </div>
                                 <div className="od-actions">
-                                    <button className="od-btn primary" onClick={() => setSelectedTaskId(esc.id)}>
+                                    <button className="od-btn primary" onClick={() => handleOpenIssue(esc.id)}>
                                         View Issue
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
@@ -202,7 +226,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                         ))}
 
                         {feedItems.map((item, i) => (
-                            <div key={`feed-${i}`} className="od-task active" onClick={() => item.id && setSelectedTaskId(item.id)} style={{ cursor: 'pointer' }}>
+                            <div key={`feed-${i}`} className="od-task active" onClick={() => item.id && handleOpenIssue(item.id)} style={{ cursor: 'pointer' }}>
                                 <div className="od-task-top">
                                     <span className="od-tag blue">FEED UPDATE</span>
                                     <div className="od-sla">
@@ -283,14 +307,22 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 />
             )}
 
-            {!selectedWorkerProfile && !selectedTaskId && currentView === 'dashboard' && renderDashboard()}
+            {!selectedWorkerProfile && !selectedTaskId && activeTab === 'Control' && currentView === 'dashboard' && renderDashboard()}
+
+            {!selectedWorkerProfile && !selectedTaskId && activeTab === 'Live Map' && (
+                <div style={{ flex: 1, position: 'relative', height: '100%', overflow: 'hidden' }}>
+                    <IssueDetailScreen variant={variant} isTabPage={true} />
+                </div>
+            )}
+
+            {!selectedWorkerProfile && !selectedTaskId && activeTab !== 'Control' && activeTab !== 'Live Map' && renderUnderDevelopment(activeTab)}
 
             {/* ── Monitoring Views (filter from shared issues array) ─── */}
             {!selectedWorkerProfile && !selectedTaskId && currentView === 'master_registry' && (
                 <TaskListView
                     title="Master Registry (All)"
                     filterFn={() => true}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -298,7 +330,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="Pending Assignment"
                     filterFn={t => t.status === 'pending'}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -306,7 +338,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="Assigned Monitoring"
                     filterFn={t => t.status === 'assigned'}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -314,7 +346,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="In Progress Tasks"
                     filterFn={t => t.status === 'in_progress'}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -322,7 +354,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="Completed — Verification"
                     filterFn={t => t.status === 'completed'}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -330,7 +362,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="Verified & Closed"
                     filterFn={t => t.status === 'verified'}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
@@ -338,7 +370,7 @@ const OfficialDashboardScreen = ({ variant = 'mobile' }) => {
                 <TaskListView
                     title="Escalated Issues"
                     filterFn={t => t.escalation_flag === true}
-                    onOpenTask={setSelectedTaskId}
+                    onOpenTask={handleOpenIssue}
                     onBack={() => setCurrentView('dashboard')}
                 />
             )}
